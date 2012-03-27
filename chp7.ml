@@ -84,7 +84,8 @@ end
 let (!$) = Lazy.force
 
 module type STREAM = sig
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
   val (++) : 'a stream -> 'a stream -> 'a stream  (* stream append *)
   val take : int -> 'a stream -> 'a stream
@@ -93,33 +94,38 @@ module type STREAM = sig
 end
 
 module Stream : STREAM = struct
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
-  (* function lazy *)
-  let rec (++) s1 s2 = match s1 with
-    | Nil -> s2
-    | Cons (hd, tl) -> Cons (hd, lazy (!$tl ++ s2))
+  let rec (++) s1 s2 =
+    lazy (
+      match s1 with
+      | lazy Nil -> Lazy.force s2
+      | lazy (Cons (hd, tl)) -> Cons (hd, tl ++ s2))
 
-  (* function lazy *)
-  let rec take n s = match n, s with
-    | 0, _ -> Nil
-    | _, Nil -> Nil
-    | _, Cons (hd, tl) -> Cons (hd, lazy (take (n - 1) !$tl))
+  let rec take n s =
+    lazy (
+      if n = 0 then Nil
+      else
+        match s with
+        | lazy Nil -> Nil
+        | lazy (Cons (hd, tl)) -> Cons (hd, take (n - 1) tl))
 
-  (* function lazy *)
-  let drop n s =
-    let rec drop' n s = match n, s with
-      | 0, _ -> s
-      | _, Nil -> Nil
-      | _, Cons (_, tl) -> drop' (n - 1) !$tl in
-    drop' n s
+  let rec drop n s =
+    lazy (
+      match n, s with
+      | 0, _ -> !$s
+      | _, lazy Nil -> Nil
+      | _, lazy (Cons (_, tl)) -> !$ (drop (n - 1) tl))
 
-  (* function lazy *)
   let reverse s =
-    let rec reverse' acc = function
-      | Nil -> acc
-      | Cons (hd, tl) -> reverse' (Cons (hd, lazy acc)) !$tl in
-    reverse' Nil s
+    let rec reverse' acc s =
+      lazy (
+        match s with
+        | lazy Nil -> !$ acc
+        | lazy (Cons (hd, tl)) -> !$ (reverse' (lazy (Cons (hd, acc))) tl))
+    in
+    reverse' (lazy Nil) s
 end
 
 
@@ -128,35 +134,35 @@ open Stream
 module RealTimeQueue : QUEUE = struct
   type 'a queue = 'a stream * 'a list * 'a stream
 
-  let empty = Nil, [], Nil
+  let empty = lazy Nil, [], lazy Nil
 
-  let is_empty = function Nil, _, _ -> true | _ -> false
+  let is_empty = function lazy Nil, _, _ -> true | _ -> false
 
   let rec rotate = function
-    | Nil, y :: _, a -> Cons (y, lazy a)
-    | Cons (x, xs), y :: ys, a ->
-        Cons (x, lazy (rotate (!$xs, ys, Cons (y, lazy a))))
+    | lazy Nil, y :: _, a -> lazy (Cons (y, a))
+    | lazy (Cons (x, xs)), y :: ys, a ->
+        lazy (Cons (x, rotate (xs, ys, lazy (Cons (y, a)))))
     | _, [], _ -> impossible_pat "rotate"
 
   let exec = function
-    | f, r, Cons (x, s) -> f, r, !$s
-    | f, r, Nil -> let f' = rotate (f, r, Nil) in f', [], f'
+    | f, r, lazy (Cons (x, s)) -> f, r, s
+    | f, r, lazy Nil -> let f' = rotate (f, r, lazy Nil) in f', [], f'
 
   let snoc (f, r, s) x = exec (f, x :: r, s)
 
   let head (f, _, _) = match f with
-    | Nil -> raise Empty
-    | Cons (x, _) -> x
+    | lazy Nil -> raise Empty
+    | lazy (Cons (x, _)) -> x
 
   let tail = function
-    | Nil, _, _ -> raise Empty
-    | Cons (_, f), r, s -> exec (!$f, r, s)
+    | lazy Nil, _, _ -> raise Empty
+    | lazy (Cons (_, f)), r, s -> exec (f, r, s)
 end
 
 
 let rec list_to_stream = function
-  | [] -> Nil
-  | x :: xs -> Cons (x, lazy (list_to_stream xs))
+  | [] -> lazy Nil
+  | x :: xs -> lazy (Cons (x, list_to_stream xs))
 
 
 module ScheduledBinomialHeap (Element : ORDERED)
@@ -169,33 +175,35 @@ struct
   type schedule = digit stream list
   type heap = digit stream * schedule
 
-  let empty = Nil, []
-  let is_empty (ds, _) = ds = Nil
+  let empty = lazy Nil, []
+  let is_empty (ds, _) = ds = lazy Nil
 
   let link (Node (x1, c1) as t1) (Node (x2, c2) as t2) =
     if Elem.leq x1 x2 then Node (x1, t2 :: c1)
     else Node (x2, t1 :: c2)
 
   let rec ins_tree t = function
-    | Nil -> Cons (One t, lazy Nil)
-    | Cons (Zero, ds) -> Cons (One t, ds)
-    | Cons (One t', ds) -> Cons (Zero, lazy (ins_tree (link t t') !$ds))
+    | lazy Nil -> lazy (Cons (One t, lazy Nil))
+    | lazy (Cons (Zero, ds)) -> lazy (Cons (One t, ds))
+    | lazy (Cons (One t', ds)) -> lazy (Cons (Zero, ins_tree (link t t') ds))
 
   let rec mrg a b = match a, b with
-    | ds1, Nil -> ds1
-    | Nil, ds2 -> ds2
-    | Cons (Zero, ds1), Cons (d, ds2) -> Cons (d, lazy (mrg !$ds1 !$ds2))
-    | Cons (d, ds1), Cons (Zero, ds2) -> Cons (d, lazy (mrg !$ds1 !$ds2))
-    | Cons (One t1, ds1), Cons (One t2, ds2) ->
-        Cons (Zero, lazy (ins_tree (link t1 t2) (mrg !$ds1 !$ds2)))
+    | ds1, lazy Nil -> ds1
+    | lazy Nil, ds2 -> ds2
+    | lazy (Cons (Zero, ds1)), lazy (Cons (d, ds2)) ->
+        lazy (Cons (d, mrg ds1 ds2))
+    | lazy (Cons (d, ds1)), lazy (Cons (Zero, ds2)) ->
+        lazy (Cons (d, mrg ds1 ds2))
+    | lazy (Cons (One t1, ds1)), lazy (Cons (One t2, ds2)) ->
+        lazy (Cons (Zero, ins_tree (link t1 t2) (mrg ds1 ds2)))
 
   let rec normalize ds = match ds with
-    | Nil -> ds
-    | Cons (_, ds') -> normalize (!$ds'); ds
+    | lazy Nil -> ds
+    | lazy (Cons (_, ds')) -> ignore (normalize ds'); ds
 
   let exec = function
     | [] -> []
-    | Cons (Zero, job) :: sched -> !$job :: sched
+    | lazy (Cons (Zero, job)) :: sched -> job :: sched
     | _ :: sched -> sched
 
   let insert x (ds, sched) =
@@ -205,16 +213,17 @@ struct
   let merge (ds1, _) (ds2, _) = normalize (mrg ds1 ds2), []
 
   let rec remove_min_tree = function
-    | Nil -> raise Empty
-    | Cons (hd, tl) ->
-        match hd, !$tl with
-        | One t, Nil -> t, Nil
+    | lazy Nil -> raise Empty
+    | lazy (Cons (hd, tl)) ->
+        match hd, tl with
+        | One t, lazy Nil -> t, lazy Nil
         | Zero, ds ->
-            let t', ds' = remove_min_tree ds in t', Cons (Zero, lazy ds')
+            let t', ds' = remove_min_tree ds in
+            t', lazy (Cons (Zero, ds'))
         | One (Node (x, _) as t), ds ->
             let Node (x', _) as t', ds' = remove_min_tree ds in
-            if Elem.leq x x' then t, Cons (Zero, tl)
-            else t', Cons (One t, lazy ds')
+            if Elem.leq x x' then t, lazy (Cons (Zero, tl))
+            else t', lazy (Cons (One t, ds'))
 
   let find_min (ds, _) = let Node (x, _), _ = remove_min_tree ds in x
 
@@ -227,8 +236,8 @@ end
 
 
 let rec stream_to_list = function
-  | Nil -> []
-  | Cons (x, xs) -> x :: stream_to_list !$xs
+  | lazy Nil -> []
+  | lazy (Cons (x, xs)) -> x :: stream_to_list xs
 
 
 module ScheduledBottomUpMergeSort (Element : ORDERED)
@@ -241,16 +250,16 @@ struct
 
   (* fun lazy *)
   let rec mrg xs ys = match xs, ys with
-    | Nil, _ -> ys
-    | _, Nil -> xs
-    | Cons (x, xs'), Cons (y, ys') ->
-        if Elem.leq x y then Cons (x, lazy (mrg !$xs' ys))
-        else Cons (y, lazy (mrg xs !$ys'))
+    | lazy Nil, _ -> ys
+    | _, lazy Nil -> xs
+    | lazy (Cons (x, xs')), lazy (Cons (y, ys')) ->
+        if Elem.leq x y then lazy (Cons (x, mrg xs' ys))
+        else lazy (Cons (y, mrg xs ys'))
 
   let rec exec1 = function
     | [] -> []
-    | Nil :: sched -> exec1 sched
-    | Cons (x, xs) :: sched -> !$xs :: sched
+    | lazy Nil :: sched -> exec1 sched
+    | lazy (Cons (x, xs)) :: sched -> xs :: sched
 
   let exec2 (xs, sched) = xs, exec1 (exec1 sched)
 
@@ -265,12 +274,12 @@ struct
             let xs'' = mrg xs xs' in
             add_seg xs'' segs' (size / 2) (xs'' :: rsched)
         | _ -> impossible_pat "add" in
-    let segs' = add_seg ((Cons (x, lazy Nil))) segs size [] in
+    let segs' = add_seg (lazy (Cons (x, lazy Nil))) segs size [] in
     size + 1, List.map exec2 segs'
 
   let sort (size, segs) =
     let rec mrg_all = function
       | xs, [] -> xs
       | xs, (xs', _) :: segs -> mrg_all (mrg xs xs', segs) in
-    stream_to_list (mrg_all (Nil, segs))
+    stream_to_list (mrg_all (lazy Nil, segs))
 end

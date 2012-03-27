@@ -73,7 +73,8 @@ end
 let (!$) = Lazy.force
 
 module type STREAM = sig
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
   val (++) : 'a stream -> 'a stream -> 'a stream  (* stream append *)
   val take : int -> 'a stream -> 'a stream
@@ -82,33 +83,38 @@ module type STREAM = sig
 end
 
 module Stream : STREAM = struct
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
-  (* function lazy *)
-  let rec (++) s1 s2 = match s1 with
-    | Nil -> s2
-    | Cons (hd, tl) -> Cons (hd, lazy (!$tl ++ s2))
+  let rec (++) s1 s2 =
+    lazy (
+      match s1 with
+      | lazy Nil -> Lazy.force s2
+      | lazy (Cons (hd, tl)) -> Cons (hd, tl ++ s2))
 
-  (* function lazy *)
-  let rec take n s = match n, s with
-    | 0, _ -> Nil
-    | _, Nil -> Nil
-    | _, Cons (hd, tl) -> Cons (hd, lazy (take (n - 1) !$tl))
+  let rec take n s =
+    lazy (
+      if n = 0 then Nil
+      else
+        match s with
+        | lazy Nil -> Nil
+        | lazy (Cons (hd, tl)) -> Cons (hd, take (n - 1) tl))
 
-  (* function lazy *)
-  let drop n s =
-    let rec drop' n s = match n, s with
-      | 0, _ -> s
-      | _, Nil -> Nil
-      | _, Cons (_, tl) -> drop' (n - 1) !$tl in
-    drop' n s
+  let rec drop n s =
+    lazy (
+      match n, s with
+      | 0, _ -> !$s
+      | _, lazy Nil -> Nil
+      | _, lazy (Cons (_, tl)) -> !$ (drop (n - 1) tl))
 
-  (* function lazy *)
   let reverse s =
-    let rec reverse' acc = function
-      | Nil -> acc
-      | Cons (hd, tl) -> reverse' (Cons (hd, lazy acc)) !$tl in
-    reverse' Nil s
+    let rec reverse' acc s =
+      lazy (
+        match s with
+        | lazy Nil -> !$ acc
+        | lazy (Cons (hd, tl)) -> !$ (reverse' (lazy (Cons (hd, acc))) tl))
+    in
+    reverse' (lazy Nil) s
 end
 
 
@@ -117,22 +123,23 @@ open Stream
 module BankersQueue : QUEUE = struct
   type 'a queue = int * 'a stream * int * 'a stream
 
-  let empty = 0, Nil, 0, Nil
+  let empty = 0, lazy Nil, 0, lazy Nil
   let is_empty (lenf, _, _, _) = lenf = 0
 
   let check (lenf, f, lenr, r as q) =
     if lenr <= lenf then q
-    else (lenf + lenr, f ++ reverse r, 0, Nil)
+    else (lenf + lenr, f ++ reverse r, 0, lazy Nil)
 
-  let snoc (lenf, f, lenr, r) x = check (lenf, f, lenr + 1, Cons (x, lazy r))
+  let snoc (lenf, f, lenr, r) x =
+    check (lenf, f, lenr + 1, lazy (Cons (x, r)))
 
   let head = function
-    | _, Nil, _, _ -> raise Empty
-    | _, Cons (x, _), _, _ -> x
+    | _, lazy Nil, _, _ -> raise Empty
+    | _, lazy (Cons (x, _)), _, _ -> x
 
   let tail = function
-    | _, Nil, _, _ -> raise Empty
-    | lenf, Cons (_, f'), lenr, r -> check (lenf - 1, !$f', lenr, r)
+    | _, lazy Nil, _, _ -> raise Empty
+    | lenf, lazy (Cons (_, f')), lenr, r -> check (lenf - 1, f', lenr, r)
 end
 
 

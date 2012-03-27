@@ -8,7 +8,7 @@
 
    Translation from SML to OCAML (this file):
 
-     Copyright (C) 1999 - 2002  Markus Mottl
+     Copyright (C) 1999 - 2012  Markus Mottl
      email:  markus.mottl@gmail.com
      www:    http://www.ocaml.info
 
@@ -27,7 +27,8 @@
 let (!$) = Lazy.force
 
 module type STREAM = sig
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
   val (++) : 'a stream -> 'a stream -> 'a stream  (* stream append *)
   val take : int -> 'a stream -> 'a stream
@@ -36,48 +37,57 @@ module type STREAM = sig
 end
 
 module Stream : STREAM = struct
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
-  (* function lazy *)
-  let rec (++) s1 s2 = match s1 with
-    | Nil -> s2
-    | Cons (hd, tl) -> Cons (hd, lazy (!$tl ++ s2))
+  let rec (++) s1 s2 =
+    lazy (
+      match s1 with
+      | lazy Nil -> Lazy.force s2
+      | lazy (Cons (hd, tl)) -> Cons (hd, tl ++ s2))
 
-  (* function lazy *)
-  let rec take n = function
-    | _ when n = 0 -> Nil
-    | Nil -> Nil
-    | Cons (hd, tl) -> Cons (hd, lazy (take (n - 1) !$tl))
+  let rec take n s =
+    lazy (
+      if n = 0 then Nil
+      else
+        match s with
+        | lazy Nil -> Nil
+        | lazy (Cons (hd, tl)) -> Cons (hd, take (n - 1) tl))
 
-  (* function lazy *)
-  let rec drop n = function
-    | s when n = 0 -> s
-    | Nil -> Nil
-    | Cons (_, tl) -> drop (n - 1) !$tl
+  let rec drop n s =
+    lazy (
+      match n, s with
+      | 0, _ -> !$s
+      | _, lazy Nil -> Nil
+      | _, lazy (Cons (_, tl)) -> !$ (drop (n - 1) tl))
 
-  (* function lazy *)
   let reverse s =
-    let rec reverse' acc = function
-      | Nil -> acc
-      | Cons (hd, tl) -> reverse' (Cons (hd, lazy acc)) !$tl in
-    reverse' Nil s
+    let rec reverse' acc s =
+      lazy (
+        match s with
+        | lazy Nil -> !$ acc
+        | lazy (Cons (hd, tl)) -> !$ (reverse' (lazy (Cons (hd, acc))) tl))
+    in
+    reverse' (lazy Nil) s
 end
 
-(*
 (* MM: for demonstration purposes *)
+(*
 open Stream
 
-let rec l_map f = function
-  | Nil -> Nil
-  | Cons (hd, tl) -> Cons (f hd, lazy (l_map f !$tl))
+let rec l_map f s =
+  lazy (
+    match s with
+    | lazy Nil -> Nil
+    | lazy (Cons (hd, tl)) -> Cons (f hd, l_map f tl))
 
 let rec l_iter f n = function
-  | Nil -> ()
-  | Cons (hd, tl) -> if n > 0 then begin f hd; l_iter f (n-1) !$tl end
+  | lazy (Cons (hd, tl)) when n > 0 -> f hd; l_iter f (n - 1) tl
+  | _ -> ()
 
-let rec nat = Cons (0, lazy (l_map succ nat))
+let rec nat = lazy (Cons (0, l_map succ nat))
 
 let _ =
-  let test = reverse (take 10 (drop 50 (take 1000000000 nat))) in
-  l_iter (fun n -> print_int n; print_newline ()) 1000 test
+  let test = reverse (take 10 (drop 50 (take 1_000_000_000 nat))) in
+  l_iter (fun n -> Printf.printf "%d\n" n) 1_000 test
 *)

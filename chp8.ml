@@ -66,7 +66,8 @@ end
 let (!$) = Lazy.force
 
 module type STREAM = sig
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
   val (++) : 'a stream -> 'a stream -> 'a stream  (* stream append *)
   val take : int -> 'a stream -> 'a stream
@@ -75,33 +76,38 @@ module type STREAM = sig
 end
 
 module Stream : STREAM = struct
-  type 'a stream = Nil | Cons of 'a * 'a stream Lazy.t
+  type 'a stream_cell = Nil | Cons of 'a * 'a stream
+  and 'a stream = 'a stream_cell Lazy.t
 
-  (* function lazy *)
-  let rec (++) s1 s2 = match s1 with
-    | Nil -> s2
-    | Cons (hd, tl) -> Cons (hd, lazy (!$tl ++ s2))
+  let rec (++) s1 s2 =
+    lazy (
+      match s1 with
+      | lazy Nil -> Lazy.force s2
+      | lazy (Cons (hd, tl)) -> Cons (hd, tl ++ s2))
 
-  (* function lazy *)
-  let rec take n s = match n, s with
-    | 0, _ -> Nil
-    | _, Nil -> Nil
-    | _, Cons (hd, tl) -> Cons (hd, lazy (take (n - 1) !$tl))
+  let rec take n s =
+    lazy (
+      if n = 0 then Nil
+      else
+        match s with
+        | lazy Nil -> Nil
+        | lazy (Cons (hd, tl)) -> Cons (hd, take (n - 1) tl))
 
-  (* function lazy *)
-  let drop n s =
-    let rec drop' n s = match n, s with
-      | 0, _ -> s
-      | _, Nil -> Nil
-      | _, Cons (_, tl) -> drop' (n - 1) !$tl in
-    drop' n s
+  let rec drop n s =
+    lazy (
+      match n, s with
+      | 0, _ -> !$s
+      | _, lazy Nil -> Nil
+      | _, lazy (Cons (_, tl)) -> !$ (drop (n - 1) tl))
 
-  (* function lazy *)
   let reverse s =
-    let rec reverse' acc = function
-      | Nil -> acc
-      | Cons (hd, tl) -> reverse' (Cons (hd, lazy acc)) !$tl in
-    reverse' Nil s
+    let rec reverse' acc s =
+      lazy (
+        match s with
+        | lazy Nil -> !$ acc
+        | lazy (Cons (hd, tl)) -> !$ (reverse' (lazy (Cons (hd, acc))) tl))
+    in
+    reverse' (lazy Nil) s
 end
 
 
@@ -163,7 +169,7 @@ struct
 
   type 'a queue = int * 'a stream * int * 'a stream
 
-  let empty = 0, Nil, 0, Nil
+  let empty = 0, lazy Nil, 0, lazy Nil
   let is_empty (lenf, _, lenr, _) = lenf + lenr = 0
 
   let check (lenf, f, lenr, r as q) =
@@ -175,29 +181,29 @@ struct
       lenf + lenr - j, f ++ reverse (drop j r), j, take j r
     else q
 
-  let cons x (lenf, f, lenr, r) = check (lenf + 1, Cons (x, lazy f), lenr, r)
+  let cons x (lenf, f, lenr, r) = check (lenf + 1, lazy (Cons (x, f)), lenr, r)
 
   let head = function
-    | _, Nil, _, Nil -> raise Empty
-    | _, Nil, _, Cons (x, _) -> x
-    | _, Cons (x, _), _, _ -> x
+    | _, lazy Nil, _, lazy Nil -> raise Empty
+    | _, lazy Nil, _, lazy (Cons (x, _)) -> x
+    | _, lazy (Cons (x, _)), _, _ -> x
 
   let tail = function
-    | _, Nil, _, Nil -> raise Empty
-    | _, Nil, _, Cons (_, _) -> empty
-    | lenf, Cons (x, f'), lenr, r -> check (lenf - 1, !$f', lenr, r)
+    | _, lazy Nil, _, lazy Nil -> raise Empty
+    | _, lazy Nil, _, lazy (Cons (_, _)) -> empty
+    | lenf, lazy (Cons (x, f')), lenr, r -> check (lenf - 1, f', lenr, r)
 
-  let snoc (lenf, f, lenr, r) x = check (lenf, f, lenr + 1, Cons (x, lazy r))
+  let snoc (lenf, f, lenr, r) x = check (lenf, f, lenr + 1, lazy (Cons (x, r)))
 
   let last = function
-    | _, Nil, _, Nil -> raise Empty
-    | _, Cons (x, _), _, Nil -> x
-    | _, _, _, Cons (x, _) -> x
+    | _, lazy Nil, _, lazy Nil -> raise Empty
+    | _, lazy (Cons (x, _)), _, lazy Nil -> x
+    | _, _, _, lazy (Cons (x, _)) -> x
 
   let init = function
-    | _, Nil, _, Nil -> raise Empty
-    | _, Cons (_, _), _, Nil -> empty
-    | lenf, f, lenr, Cons (_, r') -> check (lenf, f, lenr - 1, !$r')
+    | _, lazy Nil, _, lazy Nil -> raise Empty
+    | _, lazy (Cons (_, _)), _, lazy Nil -> empty
+    | lenf, f, lenr, lazy (Cons (_, r')) -> check (lenf, f, lenr - 1, r')
 end
 
 
@@ -207,22 +213,23 @@ struct
 
   type 'a queue = int * 'a stream * 'a stream * int * 'a stream * 'a stream
 
-  let empty = 0, Nil, Nil, 0, Nil, Nil
+  let empty = 0, lazy Nil, lazy Nil, 0, lazy Nil, lazy Nil
   let is_empty (lenf, f, sf, lenr, r, sr) = lenf + lenr = 0
 
-  let exec1 = function Cons (x, s) -> !$s | s -> s
+  let exec1 = function lazy (Cons (_, s)) -> s | s -> s
   let exec2 s = exec1 (exec1 s)
 
   let rec rotate_rev s r a = match s, r, a with
-    | Nil, _, _ -> reverse r ++ a
-    | Cons (x, f), _, _ ->
-        Cons (x, lazy (rotate_rev !$f (drop c r) (reverse (take c r) ++ a)))
+    | lazy Nil, _, _ -> reverse r ++ a
+    | lazy (Cons (x, f)), _, _ ->
+        lazy (Cons (x, rotate_rev f (drop c r) (reverse (take c r) ++ a)))
 
   let rec rotate_drop f j r =
-    if j < c then rotate_rev f (drop j r) Nil
+    if j < c then rotate_rev f (drop j r) (lazy Nil)
     else
       match f with
-      | Cons (x, f') -> Cons (x, lazy (rotate_drop !$f' (j - c) (drop c r)))
+      | lazy (Cons (x, f')) ->
+          lazy (Cons (x, rotate_drop f' (j - c) (drop c r)))
       | _ -> impossible_pat "rotate_drop"
 
   let check (lenf, f, sf, lenr, r, sr as q) =
@@ -239,30 +246,30 @@ struct
     else q
 
   let cons x (lenf, f, sf, lenr, r, sr) =
-    check (lenf + 1, Cons (x, lazy f), exec1 sf, lenr, r, exec1 sr)
+    check (lenf + 1, lazy (Cons (x, f)), exec1 sf, lenr, r, exec1 sr)
 
   let head = function
-    | _, Nil, _, _, Nil, _ -> raise Empty
-    | _, Nil, _, _, Cons (x, _), _ -> x
-    | _, Cons (x, _), _, _, _, _ -> x
+    | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
+    | _, lazy Nil, _, _, lazy (Cons (x, _)), _ -> x
+    | _, lazy (Cons (x, _)), _, _, _, _ -> x
 
   let tail = function
-    | _, Nil, _, _, Nil, _ -> raise Empty
-    | _, Nil, _, _, Cons (x, _), _ -> empty
-    | lenf, Cons (x, f'), sf, lenr, r, sr ->
-        check (lenf - 1, !$f', exec2 sf, lenr, r, exec2 sr)
+    | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
+    | _, lazy Nil, _, _, lazy (Cons (x, _)), _ -> empty
+    | lenf, lazy (Cons (x, f')), sf, lenr, r, sr ->
+        check (lenf - 1, f', exec2 sf, lenr, r, exec2 sr)
 
   let snoc (lenf, f, sf, lenr, r, sr) x =
-    check (lenf, f, exec1 sf, lenr + 1, Cons (x, lazy r), exec1 sr)
+    check (lenf, f, exec1 sf, lenr + 1, lazy (Cons (x, r)), exec1 sr)
 
   let last = function
-    | _, Nil, _, _, Nil, _ -> raise Empty
-    | _, Cons (x, _), _, _, Nil, _ -> x
-    | _, _, _, _, Cons (x, _), _ -> x
+    | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
+    | _, lazy (Cons (x, _)), _, _, lazy Nil, _ -> x
+    | _, _, _, _, lazy (Cons (x, _)), _ -> x
 
   let init = function
-    | _, Nil, _, _, Nil, _ -> raise Empty
-    | _, Cons (x, _), _, _, Nil, _ -> empty
-    | lenf, f, sf, lenr, Cons (x, r'), sr ->
-        check (lenf, f, exec2 sf, lenr - 1, !$r', exec2 sr)
+    | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
+    | _, lazy (Cons (x, _)), _, _, lazy Nil, _ -> empty
+    | lenf, f, sf, lenr, lazy (Cons (x, r')), sr ->
+        check (lenf, f, exec2 sf, lenr - 1, r', exec2 sr)
 end
