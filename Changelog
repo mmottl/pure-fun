@@ -1,3 +1,11 @@
+2012-03-28:  Changed representation of streams to provably satisfy
+             computational complexity guarantees.
+
+             Thanks to Arthur Charguéraud <arthur@chargueraud.org> for
+             pointing out this issue!
+
+2006-03-29:  Removed superfluous thunking of "empty" values in polymorphic
+
 2006-03-29:  Removed superfluous thunking of "empty" values in polymorphic
              datastructures due to relaxed value restriction in new
              OCaml-releases.
