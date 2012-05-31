@@ -146,7 +146,7 @@ module HoodMelvilleQueue : QUEUE = struct
     | Done newf -> (lenf, newf, Idle, lenr, r)
     | newstate -> lenf, f, newstate, lenr, r
 
-  let check ((lenf, f, state, lenr, r) as q) =
+  let check ((lenf, f, _, lenr, r) as q) =
     if lenr <= lenf then exec2 q
     else
       let newstate = Reversing (0, f, [], r, []) in
@@ -158,12 +158,12 @@ module HoodMelvilleQueue : QUEUE = struct
   let snoc (lenf, f, state, lenr, r) x = check (lenf, f, state, lenr + 1, x::r)
 
   let head = function
-    | lenf, [], state, lenr, r -> raise Empty
-    | lenf, x :: f, state, lenr, r -> x
+    | _, [], _, _, _ -> raise Empty
+    | _, x :: _, _, _, _ -> x
 
   let tail = function
-    | lenf, [], state, lenr, r -> raise Empty
-    | lenf, x :: f, state, lenr, r ->
+    | _, [], _, _, _ -> raise Empty
+    | lenf, _ :: f, state, lenr, r ->
         check (lenf - 1, f, invalidate state, lenr, r)
 end
 
@@ -196,7 +196,7 @@ struct
   let tail = function
     | _, lazy Nil, _, lazy Nil -> raise Empty
     | _, lazy Nil, _, lazy (Cons (_, _)) -> empty
-    | lenf, lazy (Cons (x, f')), lenr, r -> check (lenf - 1, f', lenr, r)
+    | lenf, lazy (Cons (_, f')), lenr, r -> check (lenf - 1, f', lenr, r)
 
   let snoc (lenf, f, lenr, r) x = check (lenf, f, lenr + 1, lazy (Cons (x, r)))
 
@@ -219,7 +219,7 @@ struct
   type 'a queue = int * 'a stream * 'a stream * int * 'a stream * 'a stream
 
   let empty = 0, lazy Nil, lazy Nil, 0, lazy Nil, lazy Nil
-  let is_empty (lenf, f, sf, lenr, r, sr) = lenf + lenr = 0
+  let is_empty (lenf, _, _, lenr, _, _) = lenf + lenr = 0
 
   let exec1 = function lazy (Cons (_, s)) -> s | s -> s
   let exec2 s = exec1 (exec1 s)
@@ -237,7 +237,7 @@ struct
           lazy (Cons (x, rotate_drop f' (j - c) (drop c r)))
       | _ -> impossible_pat "rotate_drop"
 
-  let check (lenf, f, sf, lenr, r, sr as q) =
+  let check (lenf, f, _, lenr, r, _ as q) =
     if lenf > c*lenr + 1 then
       let i = (lenf + lenr) / 2 in
       let f' = take i f
@@ -260,8 +260,8 @@ struct
 
   let tail = function
     | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
-    | _, lazy Nil, _, _, lazy (Cons (x, _)), _ -> empty
-    | lenf, lazy (Cons (x, f')), sf, lenr, r, sr ->
+    | _, lazy Nil, _, _, lazy (Cons _), _ -> empty
+    | lenf, lazy (Cons (_, f')), sf, lenr, r, sr ->
         check (lenf - 1, f', exec2 sf, lenr, r, exec2 sr)
 
   let snoc (lenf, f, sf, lenr, r, sr) x =
@@ -274,7 +274,7 @@ struct
 
   let init = function
     | _, lazy Nil, _, _, lazy Nil, _ -> raise Empty
-    | _, lazy (Cons (x, _)), _, _, lazy Nil, _ -> empty
-    | lenf, f, sf, lenr, lazy (Cons (x, r')), sr ->
+    | _, lazy (Cons _), _, _, lazy Nil, _ -> empty
+    | lenf, f, sf, lenr, lazy (Cons (_, r')), sr ->
         check (lenf, f, exec2 sf, lenr - 1, r', exec2 sr)
 end

@@ -85,7 +85,7 @@ struct
 
   let insert x h = merge (T (1, x, E, E)) h
   let find_min = function E -> raise Empty | T (_, x, _, _) -> x
-  let delete_min = function E -> raise Empty | T (_, x, a, b) -> merge a b
+  let delete_min = function E -> raise Empty | T (_, _, a, b) -> merge a b
 end
 
 
@@ -133,7 +133,7 @@ struct
   let find_min ts = root (fst (remove_min_tree ts))
 
   let delete_min ts =
-    let Node (_, x, ts1), ts2 = remove_min_tree ts in
+    let Node (_, _, ts1), ts2 = remove_min_tree ts in
     merge (List.rev ts1) ts2
 end
 

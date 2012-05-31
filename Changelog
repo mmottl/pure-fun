@@ -1,3 +1,5 @@
+2012-05-31:  Fixed new OCaml 4.00 warnings.
+
 2012-03-28:  Changed representation of streams to provably satisfy
              computational complexity guarantees.
 

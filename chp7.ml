@@ -150,7 +150,7 @@ module RealTimeQueue : QUEUE = struct
     | _, [], _ -> impossible_pat "rotate"
 
   let exec = function
-    | f, r, lazy (Cons (x, s)) -> f, r, s
+    | f, r, lazy (Cons (_, s)) -> f, r, s
     | f, r, lazy Nil -> let f' = rotate (f, r, lazy Nil) in f', [], f'
 
   let snoc (f, r, s) x = exec (f, x :: r, s)
@@ -264,7 +264,7 @@ struct
   let rec exec1 = function
     | [] -> []
     | lazy Nil :: sched -> exec1 sched
-    | lazy (Cons (x, xs)) :: sched -> xs :: sched
+    | lazy (Cons (_, xs)) :: sched -> xs :: sched
 
   let exec2 (xs, sched) = xs, exec1 (exec1 sched)
 
@@ -282,7 +282,7 @@ struct
     let segs' = add_seg (lazy (Cons (x, lazy Nil))) segs size [] in
     size + 1, List.map exec2 segs'
 
-  let sort (size, segs) =
+  let sort (_, segs) =
     let rec mrg_all = function
       | xs, [] -> xs
       | xs, (xs', _) :: segs -> mrg_all (mrg xs xs', segs) in

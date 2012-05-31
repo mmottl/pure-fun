@@ -213,7 +213,7 @@ module PhysicistsQueue : QUEUE = struct
     | [], lenf, f, lenr, r -> !$f, lenf, f, lenr, r
     | q -> q
 
-  let check (w, lenf, f, lenr, r as q) =
+  let check (_, lenf, f, lenr, r as q) =
     if lenr <= lenf then checkw q
     else
       let f' = !$f in
@@ -227,7 +227,7 @@ module PhysicistsQueue : QUEUE = struct
 
   let tail = function
     | [], _, _, _, _ -> raise Empty
-    | x :: w, lenf, f, lenr, r ->
+    | _ :: w, lenf, f, lenr, r ->
         check (w, lenf - 1, lazy (List.tl !$f), lenr, r)
 end
 
@@ -265,7 +265,7 @@ struct
       else add_seg (mrg seg (List.hd segs)) (size / 2) (List.tl segs) in
     size + 1, lazy (add_seg [x] size !$segs)
 
-  let sort (size, segs) =
+  let sort (_, segs) =
     let rec mrg_all xs = function
       | [] -> xs
       | seg :: segs -> mrg_all (mrg xs seg) segs in

@@ -48,7 +48,7 @@ module BatchedQueue : QUEUE = struct
   type 'a queue = 'a list * 'a list
 
   let empty = [], []
-  let is_empty (f, r) = f = []
+  let is_empty (f, _) = f = []
 
   let checkf (f, r as q) = if f = [] then List.rev r, f else q
 
@@ -146,7 +146,7 @@ struct
   let rec find_min = function
     | E -> raise Empty
     | T (E, x, _) -> x
-    | T (a, x, _) -> find_min a
+    | T (a, _, _) -> find_min a
 
   let rec delete_min = function
     | E -> raise Empty
@@ -181,9 +181,9 @@ struct
 
   let find_min = function
     | E -> raise Empty
-    | T (x, hs) -> x
+    | T (x, _) -> x
 
   let delete_min = function
     | E -> raise Empty
-    | T (x, hs) -> merge_pairs hs
+    | T (_, hs) -> merge_pairs hs
 end

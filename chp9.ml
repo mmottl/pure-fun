@@ -110,7 +110,7 @@ module BinaryRandomAccessList : RANDOM_ACCESS_LIST = struct
   let is_empty ts = ts = []
 
   let size = function
-    | Leaf x -> 1
+    | Leaf _ -> 1
     | Node (w, _, _) -> w
 
   let link t1 t2 = Node (size t1 + size t2, t1, t2)
@@ -140,14 +140,14 @@ module BinaryRandomAccessList : RANDOM_ACCESS_LIST = struct
 
   let rec lookup_tree i t = match i, t with
     | 0, Leaf x -> x
-    | i, Leaf x -> raise Subscript
+    | _, Leaf _ -> raise Subscript
     | i, Node (w, t1, t2) ->
         if i < w/2 then lookup_tree i t1
         else lookup_tree (i - w/2) t2
 
   let rec update_tree i y t = match i, t with
-    | 0, Leaf x -> Leaf y
-    | _, Leaf x -> raise Subscript
+    | 0, Leaf _ -> Leaf y
+    | _, Leaf _ -> raise Subscript
     | _, Node (w, t1, t2) ->
         if i < w/2 then Node (w, update_tree i y t1, t2)
         else Node (w, t1, update_tree (i - w/2) y t2)
@@ -190,22 +190,22 @@ module SkewBinaryRandomAccessList : RANDOM_ACCESS_LIST = struct
   let tail = function
     | [] -> raise Empty
     | (1, Leaf _) :: ts -> ts
-    | (w, Node (x, t1, t2)) :: ts -> (w/2, t1) :: (w/2, t2) :: ts
+    | (w, Node (_, t1, t2)) :: ts -> (w/2, t1) :: (w/2, t2) :: ts
     | _ -> impossible_pat "tail"
 
   let rec lookup_tree w i t = match w, i, t with
     | 1, 0, Leaf x -> x
-    | 1, _, Leaf x -> raise Subscript
-    | _, 0, Node (x, t1, t2) -> x
-    | _, _, Node (x, t1, t2) ->
+    | 1, _, Leaf _ -> raise Subscript
+    | _, 0, Node (x, _, _) -> x
+    | _, _, Node (_, t1, t2) ->
         if i <= w/2 then lookup_tree (w/2) (i - 1) t1
         else lookup_tree (w/2) (i - 1 - w/2) t2
     | _ -> impossible_pat "lookup_tree"
 
   let rec update_tree = function
-    | 1, 0, y, Leaf x -> Leaf y
-    | 1, i, y, Leaf x -> raise Subscript
-    | w, 0, y, Node (x, t1, t2) -> Node (y, t1, t2)
+    | 1, 0, y, Leaf _ -> Leaf y
+    | 1, _, _, Leaf _ -> raise Subscript
+    | _, 0, y, Node (_, t1, t2) -> Node (y, t1, t2)
     | w, i, y, Node (x, t1, t2) ->
         if i <= w/2 then Node (x, update_tree (w/2, i - 1, y, t1), t2)
         else Node (x, t1, update_tree (w/2, i - 1 - w/2, y, t2))
@@ -310,7 +310,7 @@ struct
   let find_min ts = root (fst (remove_min_tree ts))
 
   let delete_min ts =
-    let Node (_, x, xs, ts1), ts2 = remove_min_tree ts in
+    let Node (_, _, xs, ts1), ts2 = remove_min_tree ts in
       let rec insert_all ts = function
         | [] -> ts
         | x :: xs' -> insert_all (insert x ts) xs' in

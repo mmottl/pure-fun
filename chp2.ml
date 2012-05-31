@@ -41,6 +41,7 @@ module type STACK = sig
   val cons : 'a -> 'a stack -> 'a stack
   val head : 'a stack -> 'a        (* raises Empty if stack is empty *)
   val tail : 'a stack -> 'a stack  (* raises Empty if stack is empty *)
+  val (++) : 'a stack -> 'a stack -> 'a stack
 end
 
 
@@ -52,6 +53,7 @@ module ListStack : STACK = struct
   let cons x s = x :: s
   let head = function [] -> raise Empty | h :: _ -> h
   let tail = function [] -> raise Empty | _ :: t -> t
+  let (++) = (@)
 end
 
 
@@ -77,7 +79,7 @@ let rec (++) xs ys = match xs with
 
 let rec update lst i y = match lst, i with
   | [], _ -> raise Subscript
-  | x :: xs, 0 -> y :: xs
+  | _ :: xs, 0 -> y :: xs
   | x :: xs, _ -> x :: update xs (i - 1) y
 
 
