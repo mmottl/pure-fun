@@ -1,5 +1,5 @@
-Pure-Fun - Purely Functional Datastructures for OCaml
-=====================================================
+Pure-Fun - Purely Functional Data Structures for OCaml
+======================================================
 
 ---------------------------------------------------------------------------
 
@@ -64,9 +64,9 @@ any name.  The underscore (`_`) will hold its place.
 
 ### Lazy evaluation
 
-The syntax for lazy evaluation used to implement the datastructures
+The syntax for lazy evaluation used to implement the data structures
 and algorithms that require them is quite different from the original.
-The `lazy` type is used to specify datastructures that need lazy evaluation.
+The `lazy` type is used to specify data structures that need lazy evaluation.
 OCaml recently also introduced pattern matching on lazy values, which is
 used throughout.
 
