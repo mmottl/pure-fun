@@ -10,11 +10,12 @@ The files in this project contain an SML-to-[OCaml](http://www.ocaml.org)
 translation of source examples taken from the following
 [book](http://www.amazon.com/Purely-Functional-Structures-Chris-Okasaki/dp/0521663504):
 
-    :::text
-    Purely Functional Data Structures
-    Chris Okasaki
-    Cambridge University Press, 1998
-    Copyright (c) 1998 Cambridge University Press
+```text
+Purely Functional Data Structures
+Chris Okasaki
+Cambridge University Press, 1998
+Copyright (c) 1998 Cambridge University Press
+```
 
 Notes Regarding the Translation
 -------------------------------
@@ -96,7 +97,7 @@ In the case of bugs, feature requests, contributions and similar, you can
 contact me here: <markus.mottl@gmail.com>
 
 Up-to-date information should be available at:
-<https://bitbucket.org/mmottl/pure-fun>
+<http://mmottl.github.io/pure-fun>
 
 Enjoy!
 
