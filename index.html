@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Pure-fun : Purely functional data structures for OCaml, translated from Chris Okasaki&#39;s book &quot;Purely Functional Data Structures&quot;" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Pure-fun</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/mmottl/pure-fun">View on GitHub</a>
+
+          <h1 id="project_title">Pure-fun</h1>
+          <h2 id="project_tagline">Purely functional data structures for OCaml, translated from Chris Okasaki&#39;s book &quot;Purely Functional Data Structures&quot;</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/mmottl/pure-fun/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/mmottl/pure-fun/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="pure-fun---purely-functional-data-structures-for-ocaml" class="anchor" href="#pure-fun---purely-functional-data-structures-for-ocaml"><span class="octicon octicon-link"></span></a>Pure-Fun - Purely Functional Data Structures for OCaml</h1>
+
+<hr><h2>
+<a name="what-is-pure-fun" class="anchor" href="#what-is-pure-fun"><span class="octicon octicon-link"></span></a>What is <code>Pure-Fun</code>?</h2>
+
+<p>The files in this project contain an SML-to-<a href="http://www.ocaml.org">OCaml</a>
+translation of source examples taken from the following
+<a href="http://www.amazon.com/Purely-Functional-Structures-Chris-Okasaki/dp/0521663504">book</a>:</p>
+
+<div class="highlight highlight-text"><pre>Purely Functional Data Structures
+Chris Okasaki
+Cambridge University Press, 1998
+Copyright (c) 1998 Cambridge University Press
+</pre></div>
+
+<h2>
+<a name="notes-regarding-the-translation" class="anchor" href="#notes-regarding-the-translation"><span class="octicon octicon-link"></span></a>Notes Regarding the Translation</h2>
+
+<p>The first nine chapters are translated now.  There are two further chapters,
+whose implementation requires polymorphic recursion.  This feature was not
+available in OCaml for a while, which is why they have not been translated yet.
+Feel free to contribute them!</p>
+
+<p>This translation is as close as possible to the original code, but some
+deviations from the original were necessary.  The following rules / differences
+to the original sources exist:</p>
+
+<h3>
+<a name="no-base-module" class="anchor" href="#no-base-module"><span class="octicon octicon-link"></span></a>No base module</h3>
+
+<p>Since there is hardly anything indispensable in the base module, its relevant
+contents was copied into each module.  This allows for easier testing,
+because the modules do not depend on others.</p>
+
+<h3>
+<a name="syntax" class="anchor" href="#syntax"><span class="octicon octicon-link"></span></a>Syntax</h3>
+
+<p>Names are created by the following rules:</p>
+
+<ul>
+<li><p>Module types are written in capitals.  If they consist of more than a
+word, an underscore (<code>_</code>) is placed between the words.</p></li>
+<li><p>Names of exceptions follow the same rule as modules types.</p></li>
+<li><p>Module implementations have to start with a capital letter, the rest of
+the name is lowercase - except if it consists of more than one word.
+In this case the first letter of the following word is uppercase.
+There is no underscore between words.</p></li>
+</ul><h3>
+<a name="currying-of-function-parameters" class="anchor" href="#currying-of-function-parameters"><span class="octicon octicon-link"></span></a>Currying of function parameters</h3>
+
+<p>Currying is not used anywhere in the original source.  The translation
+curries parameters where it makes sense.  Tuples that represent a named type
+(e.g. some data structure) are <em>not</em> curried in functions that are hidden by
+a signature restriction.  This seems to aid comprehension.  Functions offered
+via the module interface (signature) do not reveal such implementation details
+(i.e. the concrete type) anyway.</p>
+
+<h3>
+<a name="superfluous-bindings" class="anchor" href="#superfluous-bindings"><span class="octicon octicon-link"></span></a>Superfluous bindings</h3>
+
+<p>If a parameter is never used in a following expression, it is not bound to
+any name.  The underscore (<code>_</code>) will hold its place.</p>
+
+<h3>
+<a name="lazy-evaluation" class="anchor" href="#lazy-evaluation"><span class="octicon octicon-link"></span></a>Lazy evaluation</h3>
+
+<p>The syntax for lazy evaluation used to implement the data structures
+and algorithms that require them is quite different from the original.
+The <code>lazy</code> type is used to specify data structures that need lazy evaluation.
+OCaml recently also introduced pattern matching on lazy values, which is
+used throughout.</p>
+
+<p>To make the syntax at least a bit more similar to the original, we have
+also introduced the prefix operator (<code>!$</code>), which stands for <code>force</code> -
+it forces evaluation of a lazy expression.  To make an expression lazy,
+the OCaml-keyword <code>lazy</code> is used.</p>
+
+<p>There is a test function at the end of the translation of chapter 4, the
+chapter in which lazy evaluation and streams (= lazy lists) are introduced.
+Uncomment it to see how lazy evaluation works.</p>
+
+<h2>
+<a name="notes-on-efficiency" class="anchor" href="#notes-on-efficiency"><span class="octicon octicon-link"></span></a>Notes on Efficiency</h2>
+
+<p>Because the data structures are purely functional, they profit a lot from
+garbage collector settings.  In case you find that some of them are not
+efficient enough, you might want to raise the memory overhead parameter of
+the garbage collector.  Performance is in general excellent.</p>
+
+<hr><h2>
+<a name="contact-information-and-contributing" class="anchor" href="#contact-information-and-contributing"><span class="octicon octicon-link"></span></a>Contact Information and Contributing</h2>
+
+<p>In the case of bugs, feature requests, contributions and similar, you can
+contact me here: <a href="mailto:markus.mottl@gmail.com">markus.mottl@gmail.com</a></p>
+
+<p>Up-to-date information should be available at:
+<a href="http://mmottl.github.io/pure-fun">http://mmottl.github.io/pure-fun</a></p>
+
+<p>Enjoy!</p>
+
+<p>Markus Mottl in Rutherford, NJ on July 10, 2012</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Pure-fun maintained by <a href="https://github.com/mmottl">mmottl</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
