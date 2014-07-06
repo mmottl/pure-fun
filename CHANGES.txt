@@ -1,3 +1,5 @@
+2014-07-06:  Moved to GitHub.
+
 2012-07-15:  Rewrote README in Markdown.
 
 2012-05-31:  Fixed new OCaml 4.00 warnings.
