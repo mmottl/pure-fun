@@ -1,10 +1,6 @@
-Pure-Fun - Purely Functional Data Structures for OCaml
-======================================================
+## Pure-Fun - Purely Functional Data Structures for OCaml
 
----------------------------------------------------------------------------
-
-What is `Pure-Fun`?
--------------------
+### What is `Pure-Fun`?
 
 The files in this project contain an SML-to-[OCaml](http://www.ocaml.org)
 translation of source examples taken from the following
@@ -17,8 +13,7 @@ Cambridge University Press, 1998
 Copyright (c) 1998 Cambridge University Press
 ```
 
-Notes Regarding the Translation
--------------------------------
+### Notes Regarding the Translation
 
 The first nine chapters are translated now.  There are two further chapters,
 whose implementation requires polymorphic recursion.  This feature was not
@@ -29,13 +24,13 @@ This translation is as close as possible to the original code, but some
 deviations from the original were necessary.  The following rules / differences
 to the original sources exist:
 
-### No base module
+#### No base module
 
 Since there is hardly anything indispensable in the base module, its relevant
 contents was copied into each module.  This allows for easier testing,
 because the modules do not depend on others.
 
-### Syntax
+#### Syntax
 
 Names are created by the following rules:
 
@@ -49,7 +44,7 @@ Names are created by the following rules:
     In this case the first letter of the following word is uppercase.
     There is no underscore between words.
 
-### Currying of function parameters
+#### Currying of function parameters
 
 Currying is not used anywhere in the original source.  The translation
 curries parameters where it makes sense.  Tuples that represent a named type
@@ -58,12 +53,12 @@ a signature restriction.  This seems to aid comprehension.  Functions offered
 via the module interface (signature) do not reveal such implementation details
 (i.e. the concrete type) anyway.
 
-### Superfluous bindings
+#### Superfluous bindings
 
 If a parameter is never used in a following expression, it is not bound to
 any name.  The underscore (`_`) will hold its place.
 
-### Lazy evaluation
+#### Lazy evaluation
 
 The syntax for lazy evaluation used to implement the data structures
 and algorithms that require them is quite different from the original.
@@ -80,25 +75,16 @@ There is a test function at the end of the translation of chapter 4, the
 chapter in which lazy evaluation and streams (= lazy lists) are introduced.
 Uncomment it to see how lazy evaluation works.
 
-Notes on Efficiency
--------------------
+### Notes on Efficiency
 
 Because the data structures are purely functional, they profit a lot from
 garbage collector settings.  In case you find that some of them are not
 efficient enough, you might want to raise the memory overhead parameter of
 the garbage collector.  Performance is in general excellent.
 
----------------------------------------------------------------------------
+### Contact Information and Contributing
 
-Contact Information and Contributing
-------------------------------------
+Please submit bugs reports, feature requests, contributions and similar to
+the [GitHub issue tracker](https://github.com/mmottl/pure-fun/issues).
 
-In the case of bugs, feature requests, contributions and similar, you can
-contact me here: <markus.mottl@gmail.com>
-
-Up-to-date information should be available at:
-<http://mmottl.github.io/pure-fun>
-
-Enjoy!
-
-Markus Mottl in Rutherford, NJ on July 10, 2012
+Up-to-date information is available at: <https://mmottl.github.io/pure-fun>
