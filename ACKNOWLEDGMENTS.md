@@ -4,5 +4,5 @@ datastructures.  They have used the automated theorem prover "Coq" to prove many
 of Okasaki's datastructures correct, including their computational complexity.
 An earlier implementation of streams in this library differed slightly from
 theirs, and it was not clear whether this could break their complexity
-guarantees.  The new representation is based on Arthur's and Rboerto's
+guarantees.  The new representation is based on Arthur's and Roberto's
 recommendations and should be sound.
