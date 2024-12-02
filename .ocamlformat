@@ -1,0 +1,6 @@
+version = 0.26.2
+profile = conventional
+
+# Default overrides
+wrap-comments = true
+parse-docstrings = true

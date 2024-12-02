@@ -1,29 +1,34 @@
-(*
+(* Chapter 3
+
+   ===========================================================================
+
    Original source code in SML from:
 
-     Purely Functional Data Structures
-     Chris Okasaki
-     Cambridge University Press, 1998
-     Copyright (c) 1998 Cambridge University Press
+   Purely Functional Data Structures
+
+   Chris Okasaki
+
+   Copyright © 1998 Cambridge University Press
+
+   ===========================================================================
 
    Translation from SML to OCAML (this file):
 
-     Copyright (C) 1999, 2000, 2001  Markus Mottl
-     email:  markus.mottl@gmail.com
-     www:    http://www.ocaml.info
+   Copyright © 1999- Markus Mottl <markus.mottl@gmail.com>
 
-   Licensed under the Apache License, Version 2.0 (the "License"); you may
-   not use this file except in compliance with the License.  You may obtain
-   a copy of the License at
+   ===========================================================================
 
-     http://www.apache.org/licenses/LICENSE-2.0
+   Licensed under the Apache License, Version 2.0 (the "License"); you may not
+   use this file except in compliance with the License. You may obtain a copy of
+   the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-   License for the specific language governing permissions and limitations
-   under the License.
-*)
+   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+   License for the specific language governing permissions and limitations under
+   the License. *)
 
 (***********************************************************************)
 (*                              Chapter 3                              *)
@@ -34,7 +39,6 @@ exception Impossible_pattern of string
 
 let impossible_pat x = raise (Impossible_pattern x)
 
-
 (* A totally ordered type and its comparison functions *)
 module type ORDERED = sig
   type t
@@ -44,7 +48,6 @@ module type ORDERED = sig
   val leq : t -> t -> bool
 end
 
-
 module type HEAP = sig
   module Elem : ORDERED
 
@@ -52,31 +55,28 @@ module type HEAP = sig
 
   val empty : heap
   val is_empty : heap -> bool
-
   val insert : Elem.t -> heap -> heap
   val merge : heap -> heap -> heap
-
-  val find_min : heap -> Elem.t  (* raises Empty if heap is empty *)
-  val delete_min : heap -> heap  (* raises Empty if heap is empty *)
+  val find_min : heap -> Elem.t (* raises Empty if heap is empty *)
+  val delete_min : heap -> heap (* raises Empty if heap is empty *)
 end
 
-
-module LeftistHeap (Element : ORDERED) : (HEAP with module Elem = Element) =
+module LeftistHeap (Element : ORDERED) : HEAP with module Elem = Element =
 struct
   module Elem = Element
 
   type heap = E | T of int * Elem.t * heap * heap
 
-  let rank = function E -> 0 | T (r,_,_,_) -> r
+  let rank = function E -> 0 | T (r, _, _, _) -> r
 
   let makeT x a b =
-    if rank a >= rank b then T (rank b + 1, x, a, b)
-    else T (rank a + 1, x, b, a)
+    if rank a >= rank b then T (rank b + 1, x, a, b) else T (rank a + 1, x, b, a)
 
   let empty = E
   let is_empty h = h = E
 
-  let rec merge h1 h2 = match h1, h2 with
+  let rec merge h1 h2 =
+    match (h1, h2) with
     | _, E -> h1
     | E, _ -> h2
     | T (_, x, a1, b1), T (_, y, a2, b2) ->
@@ -88,8 +88,7 @@ struct
   let delete_min = function E -> raise Empty | T (_, _, a, b) -> merge a b
 end
 
-
-module BinomialHeap (Element : ORDERED) : (HEAP with module Elem = Element) =
+module BinomialHeap (Element : ORDERED) : HEAP with module Elem = Element =
 struct
   module Elem = Element
 
@@ -98,7 +97,6 @@ struct
 
   let empty = []
   let is_empty ts = ts = []
-
   let rank (Node (r, _, _)) = r
   let root (Node (_, x, _)) = x
 
@@ -107,14 +105,14 @@ struct
     else Node (r + 1, x2, t1 :: c2)
 
   let rec ins_tree t = function
-    | [] -> [t]
+    | [] -> [ t ]
     | t' :: ts' as ts ->
-        if rank t < rank t' then t :: ts
-        else ins_tree (link t t') ts'
+        if rank t < rank t' then t :: ts else ins_tree (link t t') ts'
 
   let insert x ts = ins_tree (Node (0, x, [])) ts
 
-  let rec merge ts1 ts2 = match ts1, ts2 with
+  let rec merge ts1 ts2 =
+    match (ts1, ts2) with
     | _, [] -> ts1
     | [], _ -> ts2
     | t1 :: ts1', t2 :: ts2' ->
@@ -124,11 +122,10 @@ struct
 
   let rec remove_min_tree = function
     | [] -> raise Empty
-    | [t] -> t, []
+    | [ t ] -> (t, [])
     | t :: ts ->
         let t', ts' = remove_min_tree ts in
-        if Elem.leq (root t) (root t') then (t, ts)
-        else (t', t :: ts')
+        if Elem.leq (root t) (root t') then (t, ts) else (t', t :: ts')
 
   let find_min ts = root (fst (remove_min_tree ts))
 
@@ -136,7 +133,6 @@ struct
     let Node (_, _, ts1), ts2 = remove_min_tree ts in
     merge (List.rev ts1) ts2
 end
-
 
 module type SET = sig
   type elem
@@ -147,11 +143,8 @@ module type SET = sig
   val member : elem -> set -> bool
 end
 
-
-module RedBlackSet (Element : ORDERED) : (SET with type elem = Element.t) =
-struct
+module RedBlackSet (Element : ORDERED) : SET with type elem = Element.t = struct
   type elem = Element.t
-
   type color = R | B
   type tree = E | T of color * tree * elem * tree
   type set = tree
@@ -179,8 +172,10 @@ struct
       | T (color, a, y, b) as s ->
           if Element.lt x y then balance (color, ins a, y, b)
           else if Element.lt y x then balance (color, a, y, ins b)
-          else s in
-    match ins s with  (* guaranteed to be non-empty *)
+          else s
+    in
+    match ins s with
+    (* guaranteed to be non-empty *)
     | T (_, a, y, b) -> T (B, a, y, b)
     | _ -> impossible_pat "insert"
 end
