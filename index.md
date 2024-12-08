@@ -1,90 +1,67 @@
-## Pure-Fun - Purely Functional Data Structures for OCaml
+# Pure-Fun - Purely Functional Data Structures for OCaml
 
-### What is `Pure-Fun`?
+## Overview
 
-The files in this project contain an SML-to-[OCaml](http://www.ocaml.org)
-translation of source examples taken from the following
-[book](http://www.amazon.com/Purely-Functional-Structures-Chris-Okasaki/dp/0521663504):
+`Pure-Fun` is an SML-to-[OCaml](http://www.ocaml.org) translation of source
+examples from the book:
 
 ```text
 Purely Functional Data Structures
 Chris Okasaki
 Cambridge University Press, 1998
-Copyright (c) 1998 Cambridge University Press
+Copyright © 1998 Cambridge University Press
 ```
 
-### Notes Regarding the Translation
+## Translation Notes
 
-The first nine chapters are translated now.  There are two further chapters,
-whose implementation requires polymorphic recursion.  This feature was not
-available in OCaml for a while, which is why they have not been translated yet.
-Feel free to contribute them!
+The first nine chapters are complete. The remaining chapters require
+polymorphic recursion, a feature not available in OCaml at the time.
+Contributions for these chapters are welcome.
 
-This translation is as close as possible to the original code, but some
-deviations from the original were necessary.  The following rules / differences
-to the original sources exist:
+This translation follows the original code, with some necessary adjustments:
 
-#### No base module
+### No Base Module
 
-Since there is hardly anything indispensable in the base module, its relevant
-contents was copied into each module.  This allows for easier testing,
-because the modules do not depend on others.
+Each module copies relevant contents from the base module for easier testing,
+eliminating inter-module dependencies.
 
-#### Syntax
+### Naming Conventions
 
-Names are created by the following rules:
+- **Module Types**: Written in uppercase, with words separated by underscores.
+- **Exceptions**: Follow the same rule as module types.
+- **Module Implementations**: Uses PascalCase by capitalizing the first letter
+  of each word without using underscores. For example, `ModuleName`.
 
-  * Module types are written in capitals.  If they consist of more than a
-    word, an underscore (`_`) is placed between the words.
+### Currying
 
-  * Names of exceptions follow the same rule as modules types.
+The implementation curries parameters where appropriate. Functions hidden by
+signature restrictions do not curry tuples representing named types, aiding
+comprehension.
 
-  * Module implementations have to start with a capital letter, the rest of
-    the name is lowercase - except if it consists of more than one word.
-    In this case the first letter of the following word is uppercase.
-    There is no underscore between words.
+### Unused Parameters
 
-#### Currying of function parameters
+The implementation prefixes unused parameters with an underscore (`_`).
 
-Currying is not used anywhere in the original source.  The translation
-curries parameters where it makes sense.  Tuples that represent a named type
-(e.g. some data structure) are _not_ curried in functions that are hidden by
-a signature restriction.  This seems to aid comprehension.  Functions offered
-via the module interface (signature) do not reveal such implementation details
-(i.e. the concrete type) anyway.
+### Lazy Evaluation
 
-#### Superfluous bindings
+The syntax for lazy evaluation differs from the original. Expressions requiring
+lazy evaluation have type `lazy`. The code utilizes OCaml's pattern matching
+on lazy values and a prefix operator (`!$`) to force evaluation. The `lazy`
+keyword creates lazy expressions.
 
-If a parameter is never used in a following expression, it is not bound to
-any name.  The underscore (`_`) will hold its place.
+Chapter 4 includes a test function at the end, introducing lazy evaluation
+and streams. Uncomment it to explore lazy evaluation.
 
-#### Lazy evaluation
+### Efficiency Notes
 
-The syntax for lazy evaluation used to implement the data structures
-and algorithms that require them is quite different from the original.
-The `lazy` type is used to specify data structures that need lazy evaluation.
-OCaml recently also introduced pattern matching on lazy values, which is
-used throughout.
+Optimize purely functional data structures by adjusting garbage collector
+settings. If performance is lacking, consider increasing the garbage
+collector's memory overhead parameter. Generally, the implemention is highly
+efficient.
 
-To make the syntax at least a bit more similar to the original, we have
-also introduced the prefix operator (`!$`), which stands for `force` -
-it forces evaluation of a lazy expression.  To make an expression lazy,
-the OCaml-keyword `lazy` is used.
+## Contributing
 
-There is a test function at the end of the translation of chapter 4, the
-chapter in which lazy evaluation and streams (= lazy lists) are introduced.
-Uncomment it to see how lazy evaluation works.
+Submit bug reports, feature requests, and contributions via the
+[GitHub issue tracker](https://github.com/mmottl/pure-fun/issues).
 
-### Notes on Efficiency
-
-Because the data structures are purely functional, they profit a lot from
-garbage collector settings.  In case you find that some of them are not
-efficient enough, you might want to raise the memory overhead parameter of
-the garbage collector.  Performance is in general excellent.
-
-### Contact Information and Contributing
-
-Please submit bugs reports, feature requests, contributions and similar to
-the [GitHub issue tracker](https://github.com/mmottl/pure-fun/issues).
-
-Up-to-date information is available at: <https://mmottl.github.io/pure-fun>
+For the latest updates, visit: <https://mmottl.github.io/pure-fun>
