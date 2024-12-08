@@ -165,7 +165,8 @@ end
 
 module BankersDeque (C : sig
   val c : int
-end) : DEQUE = (* c > 1 *)
+end) : DEQUE =
+(* c > 1 *)
 struct
   let c = C.c
 
@@ -210,7 +211,8 @@ end
 
 module RealTimeDeque (C : sig
   val c : int
-end) : DEQUE = (* c = 2 or c = 3 *)
+end) : DEQUE =
+(* c = 2 or c = 3 *)
 struct
   let c = C.c
 
