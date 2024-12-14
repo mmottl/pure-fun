@@ -1,3 +1,5 @@
+# Changelog
+
 ## 1.0.12 (2018-10-25)
 
 - Switched to dune-release and OPAM 2.0
