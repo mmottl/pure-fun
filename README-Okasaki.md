@@ -67,5 +67,4 @@ their syntax requires the following changes:
   in ... s ... end
   ```
 
-Chris Okasaki
-cdo@cs.columbia.edu
+Chris Okasaki <cdo@cs.columbia.edu>
